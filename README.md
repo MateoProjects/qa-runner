@@ -8,7 +8,7 @@ A zero-dependency manual QA tool — one HTML file, no build step, no server. Lo
 
 ## How it works
 
-1. Open `qa-tool.html` in Chrome or Edge (Firefox works but File System Access API is unavailable — files download instead)
+1. Open `qa-runner.html` in Chrome or Edge (Firefox works but File System Access API is unavailable — files download instead)
 2. Drop one or more suite JSON files onto the load screen (or click **Select files**)
 3. Choose which tests to run
 4. Mark each step **Pass / Fail / Skip** — keyboard shortcuts P / F / S
