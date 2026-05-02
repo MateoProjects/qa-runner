@@ -168,14 +168,13 @@ You can ask an LLM to produce a suite JSON automatically. Paste the schema above
 ---
 
 ## Files
-
+Example of folder for a qa_runner tool
 ```
 qa/
 ├── qa-tool.html          ← the tool (open this)
 ├── suites/
-│   ├── hub.json          ← Hub suite
-│   ├── node.json         ← Node suite
-│   └── e2e.json          ← End-to-end researcher workflow
+│   ├── software.json         ← software suite
+│   └── e2e.json          ← End-to-end workflow
 └── results/              ← generated reports land here
 ```
 
