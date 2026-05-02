@@ -1,0 +1,1243 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QA Tool</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --blue:    #2563eb;
+  --blue-lt: #eff6ff;
+  --blue-bd: #bfdbfe;
+  --green:   #16a34a;
+  --green-lt:#dcfce7;
+  --red:     #dc2626;
+  --red-lt:  #fee2e2;
+  --amber-lt:#fef3c7;
+  --slate-9: #0f172a;
+  --slate-7: #334155;
+  --slate-6: #475569;
+  --slate-5: #64748b;
+  --slate-4: #94a3b8;
+  --slate-3: #cbd5e1;
+  --slate-2: #e2e8f0;
+  --slate-1: #f1f5f9;
+  --slate-0: #f8fafc;
+  --white:   #ffffff;
+  --radius:  8px;
+  --shadow:  0 1px 3px rgba(0,0,0,0.08);
+}
+
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: var(--slate-1); color: var(--slate-9); font-size: 14px; line-height: 1.5; }
+
+.hidden { display: none !important; }
+button { cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 500; border: none; border-radius: 6px; padding: 7px 14px; transition: background 0.1s, opacity 0.1s; }
+button:disabled { opacity: 0.45; cursor: not-allowed; }
+input[type="text"] { font-family: inherit; font-size: 13px; border: 1px solid var(--slate-2); border-radius: 6px; padding: 6px 10px; color: var(--slate-9); background: var(--white); outline: none; transition: border-color 0.15s; }
+input[type="text"]:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+
+/* ── LANG SWITCHER ── */
+.lang-switcher { display: flex; gap: 3px; }
+.lang-btn { background: transparent; border: 1px solid var(--slate-2); border-radius: 5px; padding: 3px 9px; font-size: 11px; font-weight: 700; color: var(--slate-4); cursor: pointer; transition: all 0.1s; letter-spacing: 0.3px; }
+.lang-btn:hover { border-color: var(--blue); color: var(--blue); }
+.lang-btn.active { background: var(--blue-lt); border-color: var(--blue-bd); color: var(--blue); }
+
+/* ── LOAD ── */
+#screen-load { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 24px; gap: 32px; position: relative; }
+.load-lang { position: absolute; top: 20px; right: 24px; }
+.load-logo { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; color: var(--slate-9); margin-bottom: 8px; text-align: center; }
+.load-logo span { color: var(--blue); }
+.load-sub { font-size: 15px; color: var(--slate-5); text-align: center; }
+.drop-zone { width: 100%; max-width: 520px; border: 2px dashed var(--slate-3); border-radius: 16px; padding: 48px 32px; display: flex; flex-direction: column; align-items: center; gap: 16px; cursor: pointer; transition: border-color 0.15s, background 0.15s; background: var(--white); }
+.drop-zone:hover, .drop-zone.drag-over { border-color: var(--blue); background: var(--blue-lt); }
+.drop-icon { color: var(--slate-3); transition: color 0.15s; }
+.drop-zone:hover .drop-icon, .drop-zone.drag-over .drop-icon { color: var(--blue); }
+.drop-title { font-size: 16px; font-weight: 600; color: var(--slate-7); }
+.drop-sub { font-size: 13px; color: var(--slate-4); text-align: center; }
+.drop-or { font-size: 12px; color: var(--slate-4); font-weight: 500; letter-spacing: 1px; text-transform: uppercase; }
+.btn-pick { background: var(--blue); color: var(--white); font-size: 13px; padding: 8px 20px; }
+.btn-pick:hover { background: #1d4ed8; }
+.load-error { width: 100%; max-width: 520px; background: var(--red-lt); border: 1px solid #fca5a5; border-radius: var(--radius); padding: 10px 14px; font-size: 13px; color: #991b1b; display: flex; align-items: center; gap: 8px; }
+.load-hint { font-size: 12px; color: var(--slate-4); text-align: center; max-width: 400px; }
+.load-hint code { background: var(--slate-1); border-radius: 4px; padding: 1px 5px; font-size: 11px; color: var(--slate-6); }
+/* suite selector (multi-file) */
+.suite-picker { width: 100%; max-width: 520px; display: flex; flex-direction: column; gap: 8px; }
+.suite-picker-title { font-size: 12px; font-weight: 600; color: var(--slate-5); text-transform: uppercase; letter-spacing: 0.7px; }
+.suite-card { background: var(--white); border: 1.5px solid var(--slate-2); border-radius: var(--radius); padding: 14px 18px; display: flex; align-items: center; gap: 14px; cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s; }
+.suite-card:hover { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37,99,235,0.08); }
+.suite-card.selected { border-color: var(--blue); background: var(--blue-lt); }
+.suite-card-icon { color: var(--blue); flex-shrink: 0; }
+.suite-card-name { font-weight: 700; font-size: 14px; color: var(--slate-9); flex: 1; }
+.suite-card.selected .suite-card-name { color: var(--blue); }
+.suite-card-meta { font-size: 12px; color: var(--slate-4); margin-top: 1px; }
+.suite-selector-actions { display: flex; align-items: center; justify-content: space-between; padding-top: 8px; }
+.suite-selector-count { font-size: 12px; color: var(--slate-5); }
+.btn-suite-continue { background: var(--blue); color: var(--white); padding: 8px 18px; font-weight: 600; font-size: 13px; }
+.btn-suite-continue:hover:not(:disabled) { background: #1d4ed8; }
+.suite-cb { width: 15px; height: 15px; accent-color: var(--blue); flex-shrink: 0; cursor: pointer; }
+
+/* ── SELECT ── */
+#screen-select { min-height: 100vh; display: flex; flex-direction: column; }
+.select-header { background: var(--white); border-bottom: 1px solid var(--slate-2); padding: 16px 32px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; box-shadow: var(--shadow); }
+.select-title { font-size: 17px; font-weight: 700; }
+.select-title span { color: var(--blue); }
+.select-actions { display: flex; align-items: center; gap: 10px; }
+.select-count { font-size: 13px; color: var(--slate-5); }
+.btn-ghost { background: var(--slate-1); color: var(--slate-6); border: 1px solid var(--slate-2); }
+.btn-ghost:hover { background: var(--slate-2); }
+.btn-start { background: var(--blue); color: var(--white); padding: 8px 20px; font-size: 14px; font-weight: 600; }
+.btn-start:hover:not(:disabled) { background: #1d4ed8; }
+.select-body { flex: 1; padding: 32px; max-width: 780px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 12px; }
+.select-top-bar { display: flex; gap: 8px; margin-bottom: 4px; }
+.select-top-bar button { font-size: 12px; padding: 5px 12px; }
+.section-block { background: var(--white); border-radius: var(--radius); border: 1px solid var(--slate-2); overflow: hidden; }
+.section-block-header { padding: 12px 16px; display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; border-bottom: 1px solid var(--slate-1); }
+.section-block-header:hover { background: var(--slate-0); }
+.section-check { width: 17px; height: 17px; accent-color: var(--blue); cursor: pointer; flex-shrink: 0; }
+.section-block-name { font-weight: 600; font-size: 13px; flex: 1; }
+.section-block-count { font-size: 12px; color: var(--slate-4); }
+.chevron { width: 14px; height: 14px; flex-shrink: 0; border-right: 2px solid var(--slate-3); border-bottom: 2px solid var(--slate-3); transform: rotate(-45deg); transition: transform 0.15s, border-color 0.15s; }
+.chevron.open { transform: rotate(45deg); }
+.test-list { display: flex; flex-direction: column; }
+.test-row { padding: 9px 16px 9px 44px; display: flex; align-items: center; gap: 10px; border-top: 1px solid var(--slate-1); cursor: pointer; }
+.test-row:hover { background: var(--slate-0); }
+.test-check { width: 15px; height: 15px; accent-color: var(--blue); cursor: pointer; flex-shrink: 0; }
+.test-row-name { font-size: 13px; color: var(--slate-7); flex: 1; }
+.test-step-count { font-size: 11px; color: var(--slate-4); }
+
+/* ── RUN ── */
+#screen-run { display: flex; flex-direction: column; height: 100vh; }
+.run-topbar { background: var(--white); border-bottom: 1px solid var(--slate-2); padding: 0 24px; height: 56px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; box-shadow: var(--shadow); z-index: 10; }
+.run-topbar-left { display: flex; align-items: center; gap: 12px; }
+.run-logo { font-weight: 800; font-size: 16px; letter-spacing: -0.3px; }
+.run-logo span { color: var(--blue); }
+.suite-tag { background: var(--blue-lt); color: var(--blue); border: 1px solid var(--blue-bd); border-radius: 6px; padding: 3px 10px; font-size: 12px; font-weight: 600; }
+.run-topbar-mid { display: flex; align-items: center; gap: 20px; }
+.run-stat { display: flex; align-items: center; gap: 5px; font-size: 12px; }
+.run-dot { width: 8px; height: 8px; border-radius: 50%; }
+.run-dot-pass { background: var(--green); }
+.run-dot-fail { background: var(--red); }
+.run-dot-pend { background: var(--slate-3); }
+.run-topbar-right { display: flex; align-items: center; gap: 10px; }
+.tester-input { width: 140px; font-size: 12px; }
+.run-progress-wrap { background: var(--white); border-bottom: 1px solid var(--slate-2); padding: 8px 24px; display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.run-progress-track { flex: 1; background: var(--slate-1); border-radius: 99px; height: 5px; overflow: hidden; }
+.run-progress-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--green), #4ade80); transition: width 0.3s ease; }
+.run-progress-label { font-size: 12px; color: var(--slate-5); font-weight: 600; white-space: nowrap; }
+.btn-save { background: var(--green); color: var(--white); font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.btn-save:hover:not(:disabled) { background: #15803d; }
+.run-body { flex: 1; display: flex; overflow: hidden; }
+.run-sidebar { width: 220px; background: var(--white); border-right: 1px solid var(--slate-2); overflow-y: auto; flex-shrink: 0; padding: 12px 0; }
+.sidebar-label { padding: 4px 16px 6px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--slate-4); }
+.sidebar-item { padding: 7px 14px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; border-left: 3px solid transparent; transition: all 0.1s; gap: 8px; }
+.sidebar-item:hover { background: var(--slate-0); }
+.sidebar-item.active { background: var(--blue-lt); border-left-color: var(--blue); }
+.sidebar-item-name { font-size: 12px; color: var(--slate-6); flex: 1; line-height: 1.3; }
+.sidebar-item.active .sidebar-item-name { color: #1d4ed8; font-weight: 600; }
+.sidebar-pill { font-size: 10px; padding: 1px 7px; border-radius: 99px; font-weight: 600; white-space: nowrap; flex-shrink: 0; }
+.pill-pass { background: var(--green-lt); color: #15803d; }
+.pill-fail { background: var(--red-lt); color: #b91c1c; }
+.pill-pend { background: var(--slate-1); color: var(--slate-5); }
+.run-content { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 24px; }
+.run-section-block { display: flex; flex-direction: column; gap: 10px; }
+.run-section-header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 4px; border-bottom: 1px solid var(--slate-2); margin-bottom: 4px; }
+.run-section-title { font-size: 13px; font-weight: 700; color: var(--slate-5); text-transform: uppercase; letter-spacing: 0.6px; }
+.btn-skip-section { font-size: 11px; padding: 3px 10px; background: var(--slate-1); color: var(--slate-5); border: 1px solid var(--slate-2); border-radius: 5px; cursor: pointer; flex-shrink: 0; }
+.btn-skip-section:hover { background: var(--slate-2); color: var(--slate-7); }
+.done-file-icon { display: flex; align-items: center; color: var(--slate-4); }
+.test-card { background: var(--white); border-radius: var(--radius); border: 1px solid var(--slate-2); overflow: hidden; box-shadow: var(--shadow); }
+.test-card-header { padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; cursor: pointer; user-select: none; }
+.test-card-header:hover { background: var(--slate-0); }
+.test-card-left { display: flex; align-items: center; gap: 10px; }
+.test-card-title { font-weight: 600; font-size: 13px; color: var(--slate-9); }
+.status-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.4px; white-space: nowrap; }
+.badge-pass { background: var(--green-lt); color: #15803d; }
+.badge-fail { background: var(--red-lt); color: #b91c1c; }
+.badge-pend { background: var(--slate-1); color: var(--slate-5); }
+.test-card-meta { font-size: 11px; color: var(--slate-4); white-space: nowrap; }
+.test-card-chevron { width: 13px; height: 13px; flex-shrink: 0; border-right: 2px solid var(--slate-3); border-bottom: 2px solid var(--slate-3); transform: rotate(-45deg); transition: transform 0.15s; }
+.test-card-chevron.open { transform: rotate(45deg); }
+.steps-list { border-top: 1px solid var(--slate-1); }
+.step-row { display: flex; align-items: flex-start; gap: 10px; padding: 9px 16px; border-bottom: 1px solid var(--slate-1); border-left: 3px solid transparent; transition: background 0.1s, border-left-color 0.1s; }
+.step-row:last-child { border-bottom: none; }
+.step-row.focused { background: #f0f7ff; border-left-color: var(--blue); }
+.step-row.status-passed { background: #f0fdf4; }
+.step-row.status-failed { background: #fff5f5; }
+.step-row.status-skipped { opacity: 0.55; }
+.step-num { font-size: 10px; color: var(--slate-4); font-weight: 600; min-width: 18px; text-align: right; padding-top: 5px; flex-shrink: 0; }
+.step-btns { display: flex; gap: 3px; flex-shrink: 0; padding-top: 1px; }
+.step-btn { width: 26px; height: 26px; border-radius: 5px; border: 1.5px solid; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; background: var(--white); transition: all 0.1s; cursor: pointer; padding: 0; user-select: none; }
+.step-btn-p { border-color: #86efac; color: var(--green); }
+.step-btn-p:hover { background: var(--green-lt); }
+.step-btn-p.active { background: var(--green); color: var(--white); border-color: var(--green); }
+.step-btn-f { border-color: #fca5a5; color: var(--red); }
+.step-btn-f:hover { background: var(--red-lt); }
+.step-btn-f.active { background: var(--red); color: var(--white); border-color: var(--red); }
+.step-btn-s { border-color: var(--slate-3); color: var(--slate-4); }
+.step-btn-s:hover { background: var(--slate-1); }
+.step-btn-s.active { background: var(--slate-4); color: var(--white); border-color: var(--slate-4); }
+.step-content { flex: 1; min-width: 0; }
+.step-desc { font-size: 12px; color: var(--slate-7); line-height: 1.45; padding-top: 3px; }
+.step-reason { width: 100%; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 5px; padding: 5px 8px; font-size: 12px; color: #9a3412; margin-top: 6px; display: none; }
+.step-reason::placeholder { color: #fdba74; }
+.step-reason:focus { outline: none; border-color: #fb923c; box-shadow: 0 0 0 3px rgba(251,146,60,0.15); }
+.kbd-legend { padding: 8px 24px; background: var(--white); border-top: 1px solid var(--slate-2); display: flex; align-items: center; gap: 16px; flex-shrink: 0; }
+.kbd-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--slate-5); }
+kbd { background: var(--slate-1); border: 1px solid var(--slate-3); border-radius: 4px; padding: 1px 5px; font-size: 10px; font-family: inherit; font-weight: 600; color: var(--slate-7); }
+
+/* ── DONE ── */
+#screen-done { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 40px 24px; }
+.done-card { background: var(--white); border-radius: 16px; border: 1px solid var(--slate-2); padding: 48px 56px; max-width: 560px; width: 100%; text-align: center; box-shadow: 0 4px 24px rgba(0,0,0,0.06); display: flex; flex-direction: column; align-items: center; gap: 20px; }
+.done-icon { color: var(--green); }
+.done-title { font-size: 22px; font-weight: 800; color: var(--slate-9); }
+.done-sub { font-size: 14px; color: var(--slate-5); }
+.done-summary { display: flex; gap: 24px; }
+.done-stat { text-align: center; }
+.done-stat-num { font-size: 28px; font-weight: 800; line-height: 1; }
+.done-stat-num.pass { color: var(--green); }
+.done-stat-num.fail { color: var(--red); }
+.done-stat-num.skip { color: var(--slate-4); }
+.done-stat-label { font-size: 11px; color: var(--slate-4); margin-top: 2px; }
+.done-files { background: var(--slate-0); border: 1px solid var(--slate-2); border-radius: var(--radius); padding: 16px 20px; width: 100%; text-align: left; display: flex; flex-direction: column; gap: 8px; }
+.done-file { display: flex; align-items: center; gap: 8px; font-size: 12px; font-family: monospace; color: var(--slate-7); }
+.btn-newrun { background: var(--blue); color: var(--white); font-size: 14px; font-weight: 600; padding: 10px 28px; }
+.btn-newrun:hover { background: #1d4ed8; }
+</style>
+</head>
+<body>
+
+<!-- SCREEN 1: LOAD -->
+<div id="screen-load">
+  <div class="load-lang">
+    <div class="lang-switcher">
+      <button class="lang-btn" data-lang="ca">CA</button>
+      <button class="lang-btn" data-lang="es">ES</button>
+      <button class="lang-btn" data-lang="en">EN</button>
+    </div>
+  </div>
+  <div>
+    <div class="load-logo">QA<span>Tool</span></div>
+    <div class="load-sub" data-i18n="load_sub"></div>
+  </div>
+  <div class="drop-zone" id="drop-zone">
+    <div class="drop-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="17 8 12 3 7 8"/>
+        <line x1="12" y1="3" x2="12" y2="15"/>
+      </svg>
+    </div>
+    <div class="drop-title" data-i18n="drop_title"></div>
+    <div class="drop-sub">hub.json · node.json · e2e.json</div>
+    <div class="drop-or" data-i18n="drop_or"></div>
+    <button class="btn-pick" id="btn-pick" data-i18n="pick_files"></button>
+    <input type="file" id="file-input" accept=".json" multiple style="display:none">
+  </div>
+  <div id="suite-picker" class="suite-picker hidden"></div>
+  <div id="load-error" class="load-error hidden">
+    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    <span id="load-error-msg"></span>
+  </div>
+  <div class="load-hint">
+    <span data-i18n="hint_suites"></span> <code>qa/suites/</code> · <span data-i18n="hint_results"></span> <code>qa/results/</code>
+  </div>
+</div>
+
+<!-- SCREEN 2: SELECT -->
+<div id="screen-select" class="hidden">
+  <div class="select-header">
+    <div class="select-title"><span data-i18n="select_tests"></span> <span id="sel-suite-name"></span></div>
+    <div class="select-actions">
+      <span class="select-count" id="sel-count"></span>
+      <button class="btn-ghost" id="btn-back-load" data-i18n="change_suite"></button>
+      <button class="btn-start" id="btn-start" disabled data-i18n="start_qa"></button>
+    </div>
+  </div>
+  <div class="select-body">
+    <div class="select-top-bar">
+      <button class="btn-ghost" id="btn-select-all" data-i18n="select_all"></button>
+      <button class="btn-ghost" id="btn-deselect-all" data-i18n="deselect_all"></button>
+    </div>
+    <div id="select-sections"></div>
+  </div>
+</div>
+
+<!-- SCREEN 3: RUN -->
+<div id="screen-run" class="hidden">
+  <div class="run-topbar">
+    <div class="run-topbar-left">
+      <div class="run-logo">QA<span>Tool</span></div>
+      <div class="suite-tag" id="run-suite-tag"></div>
+    </div>
+    <div class="run-topbar-mid">
+      <div class="run-stat"><div class="run-dot run-dot-pass"></div> <span id="stat-pass">0</span>&nbsp;<span data-i18n="stat_passed"></span></div>
+      <div class="run-stat"><div class="run-dot run-dot-fail"></div> <span id="stat-fail">0</span>&nbsp;<span data-i18n="stat_failed"></span></div>
+      <div class="run-stat"><div class="run-dot run-dot-pend"></div> <span id="stat-pend">0</span>&nbsp;<span data-i18n="stat_pending"></span></div>
+    </div>
+    <div class="run-topbar-right">
+      <input type="text" class="tester-input" id="tester-input" data-i18n-ph="tester_ph">
+      <button class="btn-save" id="btn-save" disabled>
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        <span data-i18n="save"></span>
+      </button>
+      <div class="lang-switcher" id="lang-switcher-run">
+        <button class="lang-btn" data-lang="ca">CA</button>
+        <button class="lang-btn" data-lang="es">ES</button>
+        <button class="lang-btn" data-lang="en">EN</button>
+      </div>
+    </div>
+  </div>
+  <div class="run-progress-wrap">
+    <div class="run-progress-track">
+      <div class="run-progress-fill" id="progress-fill" style="width:0%"></div>
+    </div>
+    <div class="run-progress-label" id="progress-label">0 / 0 steps</div>
+  </div>
+  <div class="run-body">
+    <div class="run-sidebar" id="run-sidebar">
+      <div class="sidebar-label" data-i18n="sections_label"></div>
+    </div>
+    <div class="run-content" id="run-content"></div>
+  </div>
+  <div class="kbd-legend">
+    <span style="font-size:11px;color:var(--slate-4);font-weight:600;margin-right:4px" data-i18n="shortcuts"></span>
+    <div class="kbd-item"><kbd>P</kbd> <span data-i18n="key_pass"></span></div>
+    <div class="kbd-item"><kbd>F</kbd> <span data-i18n="key_fail"></span></div>
+    <div class="kbd-item"><kbd>S</kbd> <span data-i18n="key_skip"></span></div>
+    <div class="kbd-item"><kbd>→</kbd> <span data-i18n="key_next"></span></div>
+    <div class="kbd-item"><kbd>←</kbd> <span data-i18n="key_prev"></span></div>
+  </div>
+</div>
+
+<!-- SCREEN 4: DONE -->
+<div id="screen-done" class="hidden">
+  <div class="done-card">
+    <div class="done-icon"><svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+    <div class="done-title" data-i18n="done_title"></div>
+    <div class="done-sub" id="done-sub"></div>
+    <div class="done-summary">
+      <div class="done-stat"><div class="done-stat-num pass" id="done-pass">0</div><div class="done-stat-label" data-i18n="done_stat_pass"></div></div>
+      <div class="done-stat"><div class="done-stat-num fail" id="done-fail">0</div><div class="done-stat-label" data-i18n="done_stat_fail"></div></div>
+      <div class="done-stat"><div class="done-stat-num skip" id="done-skip">0</div><div class="done-stat-label" data-i18n="done_stat_skip"></div></div>
+    </div>
+    <div class="done-files" id="done-files"></div>
+    <button class="btn-newrun" id="btn-newrun" data-i18n="new_run"></button>
+  </div>
+</div>
+
+<script>
+// ── i18n ─────────────────────────────────────────────────────────
+const STRINGS = {
+  ca: {
+    load_sub:          'Eina de QA manual — carrega una suite per començar',
+    drop_title:        'Arrossega un o més fitxers de suite',
+    drop_or:           'o',
+    pick_files:        'Seleccionar fitxers',
+    hint_suites:       'Les suites es troben a',
+    hint_results:      'Els resultats es guarden a',
+    select_tests:      'Selecciona els tests —',
+    change_suite:      '← Canviar suite',
+    start_qa:          'Iniciar QA →',
+    select_all:        'Seleccionar tot',
+    deselect_all:      'Deseleccionar tot',
+    stat_passed:       'passats',
+    stat_failed:       'fallats',
+    stat_pending:      'pendents',
+    tester_ph:         'Nom del tester…',
+    save:              'Guardar resultats',
+    sections_label:    'Seccions',
+    skip_test:         'Skip',
+    shortcuts:         'Dreceres:',
+    key_pass:          'Passa',
+    key_fail:          'Falla',
+    key_skip:          'Skip',
+    key_next:          'Següent step',
+    key_prev:          'Step anterior',
+    done_title:        'Run completat!',
+    done_stat_pass:    'Passats',
+    done_stat_fail:    'Fallats',
+    done_stat_skip:    'Omesos',
+    new_run:           'Nou run',
+    err_no_json:       'Selecciona un o més fitxers .json',
+    err_format:        'Format incorrecte: el JSON ha de tenir "suite" i "sections"',
+    err_no_valid:      'Cap fitxer vàlid trobat',
+    err_bad_files:     'Format incorrecte: ',
+    selector_title:    'Selecciona les suites a executar',
+    continue_btn:      'Continuar →',
+    suite_sel_1:       'suite seleccionada',
+    suite_sel_n:       'suites seleccionades',
+    n_sections:        'seccions',
+    n_tests:           'tests',
+    badge_pend:        'PENDENT',
+    reason_ph:         'Per què ha fallat?',
+    report_tester:     'Tester',
+    report_footer:     'Generat per QATool',
+    report_passed:     'Passats',
+    report_failed:     'Fallats',
+    report_skipped:    'Omesos',
+    report_total:      'Total steps',
+  },
+  es: {
+    load_sub:          'Herramienta de QA manual — carga una suite para empezar',
+    drop_title:        'Arrastra uno o más ficheros de suite',
+    drop_or:           'o',
+    pick_files:        'Seleccionar ficheros',
+    hint_suites:       'Las suites se encuentran en',
+    hint_results:      'Los resultados se guardan en',
+    select_tests:      'Selecciona los tests —',
+    change_suite:      '← Cambiar suite',
+    start_qa:          'Iniciar QA →',
+    select_all:        'Seleccionar todo',
+    deselect_all:      'Deseleccionar todo',
+    stat_passed:       'pasados',
+    stat_failed:       'fallados',
+    stat_pending:      'pendientes',
+    tester_ph:         'Nombre del tester…',
+    save:              'Guardar resultados',
+    sections_label:    'Secciones',
+    skip_test:         'Skip',
+    shortcuts:         'Atajos:',
+    key_pass:          'Pasa',
+    key_fail:          'Falla',
+    key_skip:          'Skip',
+    key_next:          'Siguiente step',
+    key_prev:          'Step anterior',
+    done_title:        '¡Run completado!',
+    done_stat_pass:    'Pasados',
+    done_stat_fail:    'Fallados',
+    done_stat_skip:    'Omitidos',
+    new_run:           'Nuevo run',
+    err_no_json:       'Selecciona uno o más ficheros .json',
+    err_format:        'Formato incorrecto: el JSON debe tener "suite" y "sections"',
+    err_no_valid:      'No se encontró ningún fichero válido',
+    err_bad_files:     'Formato incorrecto: ',
+    selector_title:    'Selecciona las suites a ejecutar',
+    continue_btn:      'Continuar →',
+    suite_sel_1:       'suite seleccionada',
+    suite_sel_n:       'suites seleccionadas',
+    n_sections:        'secciones',
+    n_tests:           'tests',
+    badge_pend:        'PENDIENTE',
+    reason_ph:         '¿Por qué ha fallado?',
+    report_tester:     'Tester',
+    report_footer:     'Generado por QATool',
+    report_passed:     'Pasados',
+    report_failed:     'Fallados',
+    report_skipped:    'Omitidos',
+    report_total:      'Total steps',
+  },
+  en: {
+    load_sub:          'Manual QA tool — load a suite to get started',
+    drop_title:        'Drop one or more suite files',
+    drop_or:           'or',
+    pick_files:        'Select files',
+    hint_suites:       'Suites are located at',
+    hint_results:      'Results are saved to',
+    select_tests:      'Select tests —',
+    change_suite:      '← Change suite',
+    start_qa:          'Start QA →',
+    select_all:        'Select all',
+    deselect_all:      'Deselect all',
+    stat_passed:       'passed',
+    stat_failed:       'failed',
+    stat_pending:      'pending',
+    tester_ph:         'Tester name…',
+    save:              'Save results',
+    sections_label:    'Sections',
+    skip_test:         'Skip',
+    shortcuts:         'Shortcuts:',
+    key_pass:          'Pass',
+    key_fail:          'Fail',
+    key_skip:          'Skip',
+    key_next:          'Next step',
+    key_prev:          'Previous step',
+    done_title:        'Run complete!',
+    done_stat_pass:    'Passed',
+    done_stat_fail:    'Failed',
+    done_stat_skip:    'Skipped',
+    new_run:           'New run',
+    err_no_json:       'Select one or more .json files',
+    err_format:        'Wrong format: JSON must have "suite" and "sections"',
+    err_no_valid:      'No valid files found',
+    err_bad_files:     'Wrong format: ',
+    selector_title:    'Select suites to run',
+    continue_btn:      'Continue →',
+    suite_sel_1:       'suite selected',
+    suite_sel_n:       'suites selected',
+    n_sections:        'sections',
+    n_tests:           'tests',
+    badge_pend:        'PENDING',
+    reason_ph:         'Why did it fail?',
+    report_tester:     'Tester',
+    report_footer:     'Generated by QATool',
+    report_passed:     'Passed',
+    report_failed:     'Failed',
+    report_skipped:    'Skipped',
+    report_total:      'Total steps',
+  },
+};
+
+function t(key) {
+  return STRINGS[state.lang]?.[key] ?? STRINGS.en[key] ?? key;
+}
+
+function applyTranslations() {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    el.textContent = t(el.dataset.i18n);
+  });
+  document.querySelectorAll('[data-i18n-ph]').forEach(el => {
+    el.placeholder = t(el.dataset.i18nPh);
+  });
+  document.querySelectorAll('.lang-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.lang === state.lang);
+  });
+}
+
+function setLanguage(lang) {
+  state.lang = lang;
+  localStorage.setItem('qatool-lang', lang);
+  applyTranslations();
+}
+
+document.addEventListener('click', e => {
+  if (e.target.classList.contains('lang-btn') && e.target.dataset.lang) {
+    setLanguage(e.target.dataset.lang);
+  }
+});
+
+// ── Helpers ──────────────────────────────────────────────────────
+function esc(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function el(tag, cls, attrs) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (attrs) Object.assign(e, attrs);
+  return e;
+}
+function txt(content) { return document.createTextNode(content); }
+
+// ── State ─────────────────────────────────────────────────────────
+const state = {
+  suite:      null,
+  selected:   new Set(),
+  results:    {},
+  flatSteps:  [],
+  focusedIdx: 0,
+  lang:       localStorage.getItem('qatool-lang') || 'ca',
+};
+
+// Apply translations on load
+applyTranslations();
+
+// ── Screen management ────────────────────────────────────────────
+function showScreen(id) {
+  ['screen-load','screen-select','screen-run','screen-done'].forEach(s => {
+    document.getElementById(s).classList.toggle('hidden', s !== id);
+  });
+}
+
+// ════════════════════════════════════════════════════════════════
+// SCREEN 1 — LOAD
+// ════════════════════════════════════════════════════════════════
+const dropZone  = document.getElementById('drop-zone');
+const fileInput = document.getElementById('file-input');
+
+document.getElementById('btn-pick').addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', e => handleFiles(e.target.files));
+dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('drag-over');
+  handleFiles(e.dataTransfer.files);
+});
+
+function handleFiles(fileList) {
+  const files = [...fileList].filter(f => f.name.endsWith('.json'));
+  if (!files.length) { showLoadError(t('err_no_json')); return; }
+  const promises = files.map(f => new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload  = ev => { try { res(JSON.parse(ev.target.result)); } catch { rej(f.name); } };
+    r.onerror = () => rej(f.name);
+    r.readAsText(f);
+  }));
+  Promise.allSettled(promises).then(results => {
+    const valid   = results.filter(r => r.status === 'fulfilled').map(r => r.value).filter(j => j.suite && Array.isArray(j.sections));
+    const invalid = results.filter(r => r.status === 'rejected').map(r => r.reason);
+    if (invalid.length) showLoadError(t('err_bad_files') + invalid.join(', '));
+    else document.getElementById('load-error').classList.add('hidden');
+    if (valid.length === 1)    { loadSuite(valid[0]); }
+    else if (valid.length > 1) { renderSuiteSelector(valid); }
+    else if (!invalid.length)  { showLoadError(t('err_no_valid')); }
+  });
+}
+
+function renderSuiteSelector(suites) {
+  const picker = document.getElementById('suite-picker');
+  picker.textContent = '';
+  const label = el('div', 'suite-picker-title'); label.textContent = t('selector_title');
+  picker.appendChild(label);
+
+  const ns = 'http://www.w3.org/2000/svg';
+  const selected = new Set(suites.map((_, i) => i));
+
+  const actions = el('div', 'suite-selector-actions');
+  const countEl  = el('span', 'suite-selector-count');
+  const btnCont  = el('button', 'btn-suite-continue'); btnCont.textContent = t('continue_btn');
+  actions.append(countEl, btnCont);
+
+  function updateCount() {
+    const n = selected.size;
+    countEl.textContent = n + ' ' + (n === 1 ? t('suite_sel_1') : t('suite_sel_n'));
+    btnCont.disabled = n === 0;
+  }
+
+  suites.forEach((json, i) => {
+    const card = el('div', 'suite-card selected');
+    const cb = el('input', 'suite-cb'); cb.type = 'checkbox'; cb.checked = true;
+
+    const icon = el('span', 'suite-card-icon');
+    const svg  = document.createElementNS(ns, 'svg');
+    svg.setAttribute('width','20'); svg.setAttribute('height','20');
+    svg.setAttribute('viewBox','0 0 24 24'); svg.setAttribute('fill','none');
+    svg.setAttribute('stroke','currentColor'); svg.setAttribute('stroke-width','2');
+    svg.setAttribute('stroke-linecap','round'); svg.setAttribute('stroke-linejoin','round');
+    const p1 = document.createElementNS(ns,'path'); p1.setAttribute('d','M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z');
+    const p2 = document.createElementNS(ns,'polyline'); p2.setAttribute('points','14 2 14 8 20 8');
+    svg.append(p1, p2); icon.appendChild(svg);
+
+    const info = el('div', null, {style:'flex:1;min-width:0'});
+    const name = el('div', 'suite-card-name'); name.textContent = json.suite;
+    const meta = el('div', 'suite-card-meta');
+    const total = json.sections.reduce((a, s) => a + s.tests.length, 0);
+    meta.textContent = json.sections.length + ' ' + t('n_sections') + ' · ' + total + ' ' + t('n_tests') + (json.version ? ' · v' + json.version : '');
+    info.append(name, meta);
+    card.append(cb, icon, info);
+
+    function toggle() {
+      if (cb.checked) { selected.add(i); card.classList.add('selected'); }
+      else            { selected.delete(i); card.classList.remove('selected'); }
+      updateCount();
+    }
+    cb.addEventListener('change', toggle);
+    card.addEventListener('click', e => { if (e.target === cb) return; cb.checked = !cb.checked; toggle(); });
+    picker.appendChild(card);
+  });
+
+  picker.appendChild(actions);
+  updateCount();
+  picker.classList.remove('hidden');
+
+  btnCont.addEventListener('click', () => {
+    const sel = suites.filter((_, i) => selected.has(i));
+    if (!sel.length) return;
+    loadSuite(sel.length === 1 ? sel[0] : mergeSuites(sel));
+  });
+}
+
+function mergeSuites(suites) {
+  const sections = [];
+  suites.forEach(s => {
+    const prefix = s.suite.toLowerCase().replace(/[^a-z0-9]/g, '_');
+    s.sections.forEach(sec => {
+      sections.push({
+        id:    prefix + '__' + sec.id,
+        title: '[' + s.suite + '] ' + sec.title,
+        tests: sec.tests.map(t => ({ ...t, id: prefix + '__' + t.id })),
+      });
+    });
+  });
+  return { suite: suites.map(s => s.suite).join(' + '), version: '', sections };
+}
+
+function showLoadError(msg) {
+  const errEl = document.getElementById('load-error');
+  document.getElementById('load-error-msg').textContent = msg;
+  errEl.classList.remove('hidden');
+}
+function loadSuite(json) {
+  if (!json.suite || !Array.isArray(json.sections)) {
+    showLoadError(t('err_format')); return;
+  }
+  document.getElementById('load-error').classList.add('hidden');
+  state.suite = json;
+  renderSelectScreen();
+  showScreen('screen-select');
+}
+
+// ════════════════════════════════════════════════════════════════
+// SCREEN 2 — SELECT
+// ════════════════════════════════════════════════════════════════
+function renderSelectScreen() {
+  const suiteNameEl = document.getElementById('sel-suite-name');
+  suiteNameEl.textContent = '— ' + state.suite.suite + (state.suite.version ? ' v' + state.suite.version : '');
+
+  // Refresh select_tests label (language might have changed)
+  document.querySelector('[data-i18n="select_tests"]').textContent = t('select_tests');
+
+  state.selected.clear();
+  state.suite.sections.forEach(sec => sec.tests.forEach(tst => state.selected.add(tst.id)));
+
+  const container = document.getElementById('select-sections');
+  container.textContent = '';
+
+  state.suite.sections.forEach(sec => {
+    const block = el('div', 'section-block');
+
+    const header  = el('div', 'section-block-header');
+    const secCb   = el('input', 'section-check'); secCb.type = 'checkbox'; secCb.checked = true; secCb.dataset.section = sec.id;
+    const secName  = el('span', 'section-block-name');  secName.textContent  = sec.title;
+    const secCount = el('span', 'section-block-count'); secCount.textContent = sec.tests.length + ' ' + t('n_tests');
+    const chevron  = el('div', 'chevron open');
+    header.append(secCb, secName, secCount, chevron);
+    block.appendChild(header);
+
+    const testList = el('div', 'test-list'); testList.dataset.section = sec.id;
+    sec.tests.forEach(tst => {
+      const row   = el('div', 'test-row');
+      const cb    = el('input', 'test-check'); cb.type = 'checkbox'; cb.checked = true; cb.dataset.testid = tst.id;
+      const name  = el('span', 'test-row-name');  name.textContent  = tst.title;
+      const count = el('span', 'test-step-count'); count.textContent = tst.steps.length + ' steps';
+      row.append(cb, name, count);
+      row.addEventListener('click', e => { if (e.target !== cb) cb.click(); });
+      cb.addEventListener('change', () => {
+        if (cb.checked) state.selected.add(tst.id); else state.selected.delete(tst.id);
+        updateSectionCb(block);
+        updateSelCount();
+      });
+      testList.appendChild(row);
+    });
+    block.appendChild(testList);
+    container.appendChild(block);
+
+    secCb.addEventListener('change', () => {
+      sec.tests.forEach(tst => {
+        if (secCb.checked) state.selected.add(tst.id); else state.selected.delete(tst.id);
+      });
+      testList.querySelectorAll('.test-check').forEach(cb => { cb.checked = secCb.checked; });
+      updateSelCount();
+    });
+
+    header.addEventListener('click', e => {
+      if (e.target === secCb) return;
+      const open = testList.style.display !== 'none';
+      testList.style.display = open ? 'none' : '';
+      chevron.classList.toggle('open', !open);
+    });
+  });
+
+  updateSelCount();
+}
+
+function updateSectionCb(block) {
+  const cbs   = [...block.querySelectorAll('.test-check')];
+  const secCb = block.querySelector('.section-check');
+  const all   = cbs.every(c => c.checked);
+  const none  = cbs.every(c => !c.checked);
+  secCb.indeterminate = !all && !none;
+  secCb.checked = all;
+}
+
+function updateSelCount() {
+  const n = state.selected.size;
+  const lang = state.lang;
+  let label;
+  if (lang === 'es') label = n + ' test' + (n !== 1 ? 's' : '') + ' seleccionado' + (n !== 1 ? 's' : '');
+  else if (lang === 'en') label = n + ' test' + (n !== 1 ? 's' : '') + ' selected';
+  else label = n + ' test' + (n !== 1 ? 's' : '') + ' seleccionat' + (n !== 1 ? 's' : '');
+  document.getElementById('sel-count').textContent = label;
+  document.getElementById('btn-start').disabled = n === 0;
+}
+
+document.getElementById('btn-select-all').addEventListener('click', () => {
+  state.suite.sections.forEach(sec => sec.tests.forEach(tst => state.selected.add(tst.id)));
+  document.querySelectorAll('.test-check, .section-check').forEach(cb => { cb.checked = true; cb.indeterminate = false; });
+  updateSelCount();
+});
+document.getElementById('btn-deselect-all').addEventListener('click', () => {
+  state.selected.clear();
+  document.querySelectorAll('.test-check, .section-check').forEach(cb => { cb.checked = false; cb.indeterminate = false; });
+  updateSelCount();
+});
+document.getElementById('btn-back-load').addEventListener('click', () => {
+  const picker = document.getElementById('suite-picker');
+  picker.textContent = '';
+  picker.classList.add('hidden');
+  document.getElementById('load-error').classList.add('hidden');
+  showScreen('screen-load');
+});
+document.getElementById('btn-start').addEventListener('click', () => {
+  initResults();
+  renderRunScreen();
+  showScreen('screen-run');
+  updateProgress();
+});
+
+// ════════════════════════════════════════════════════════════════
+// RESULTS INIT
+// ════════════════════════════════════════════════════════════════
+function initResults() {
+  state.results = {};
+  state.flatSteps = [];
+  state.suite.sections.forEach(sec => {
+    sec.tests.forEach(tst => {
+      if (!state.selected.has(tst.id)) return;
+      state.results[tst.id] = { status: 'pending', steps: {} };
+      tst.steps.forEach(s => {
+        state.results[tst.id].steps[s.id] = { status: 'pending', reason: '' };
+        state.flatSteps.push({ testId: tst.id, stepId: s.id });
+      });
+    });
+  });
+  state.focusedIdx = 0;
+}
+
+// ════════════════════════════════════════════════════════════════
+// SCREEN 3 — RUN
+// ════════════════════════════════════════════════════════════════
+function renderRunScreen() {
+  const suite = state.suite;
+  const tagEl = document.getElementById('run-suite-tag');
+  tagEl.textContent = suite.suite + (suite.version ? ' v' + suite.version : '');
+
+  const sidebar = document.getElementById('run-sidebar');
+  const content = document.getElementById('run-content');
+  while (sidebar.children.length > 1) sidebar.removeChild(sidebar.lastChild);
+  content.textContent = '';
+
+  suite.sections.forEach(sec => {
+    const selectedTests = sec.tests.filter(tst => state.selected.has(tst.id));
+    if (!selectedTests.length) return;
+
+    const si     = el('div', 'sidebar-item'); si.dataset.sectionId = sec.id;
+    const siName = el('span', 'sidebar-item-name'); siName.textContent = sec.title;
+    const pill   = el('span', 'sidebar-pill pill-pend'); pill.id = 'pill-' + sec.id;
+    pill.textContent = '0/' + selectedTests.length;
+    si.append(siName, pill);
+    si.addEventListener('click', () => {
+      document.getElementById('section-' + sec.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      document.querySelectorAll('.sidebar-item').forEach(s => s.classList.remove('active'));
+      si.classList.add('active');
+    });
+    sidebar.appendChild(si);
+
+    const secBlock  = el('div', 'run-section-block'); secBlock.id = 'section-' + sec.id;
+    const secHeader = el('div', 'run-section-header');
+    const secTitle  = el('div', 'run-section-title'); secTitle.textContent = sec.title;
+    secHeader.appendChild(secTitle);
+    secBlock.appendChild(secHeader);
+    selectedTests.forEach(tst => secBlock.appendChild(buildTestCard(tst)));
+    content.appendChild(secBlock);
+  });
+
+  sidebar.querySelector('.sidebar-item')?.classList.add('active');
+  document.getElementById('run-content').addEventListener('scroll', updateSidebarActive, { passive: true });
+  focusStep(0);
+}
+
+function buildTestCard(test) {
+  const card = el('div', 'test-card'); card.id = 'card-' + test.id;
+
+  const header = el('div', 'test-card-header'); header.dataset.testid = test.id;
+  const left   = el('div', 'test-card-left');
+  const badge  = el('span', 'status-badge badge-pend'); badge.id = 'badge-' + test.id; badge.textContent = t('badge_pend');
+  const title  = el('span', 'test-card-title'); title.textContent = test.title;
+  left.append(badge, title);
+
+  const right   = el('div', null, { style: 'display:flex;align-items:center;gap:10px' });
+  const meta    = el('span', 'test-card-meta'); meta.id = 'meta-' + test.id;
+  meta.textContent = '0/' + test.steps.length + ' steps';
+  const btnSkip = el('button', 'btn-skip-section'); btnSkip.textContent = t('skip_test');
+  btnSkip.addEventListener('click', e => { e.stopPropagation(); skipTest(test.id); });
+  const chev    = el('div', 'test-card-chevron open');
+  right.append(meta, btnSkip, chev);
+  header.append(left, right);
+  card.appendChild(header);
+
+  const stepsList = el('div', 'steps-list'); stepsList.id = 'steps-' + test.id;
+  test.steps.forEach((step, idx) => stepsList.appendChild(buildStepRow(test.id, step, idx + 1)));
+  card.appendChild(stepsList);
+
+  header.addEventListener('click', e => {
+    if (e.target.closest('.step-btn') || e.target.closest('.btn-skip-section')) return;
+    const open = stepsList.style.display !== 'none';
+    stepsList.style.display = open ? 'none' : '';
+    chev.classList.toggle('open', !open);
+  });
+
+  return card;
+}
+
+function buildStepRow(testId, step, num) {
+  const row = el('div', 'step-row');
+  row.id = 'step-' + testId + '-' + step.id;
+  row.dataset.testid = testId;
+  row.dataset.stepid = step.id;
+
+  const numEl = el('span', 'step-num'); numEl.textContent = num;
+  const btns  = el('div', 'step-btns');
+  const btnP  = el('button', 'step-btn step-btn-p'); btnP.textContent = '✓'; btnP.title = 'Pass (P)'; btnP.dataset.action = 'passed';
+  const btnF  = el('button', 'step-btn step-btn-f'); btnF.textContent = '✗'; btnF.title = 'Fail (F)'; btnF.dataset.action = 'failed';
+  const btnS  = el('button', 'step-btn step-btn-s'); btnS.textContent = '–'; btnS.title = 'Skip (S)'; btnS.dataset.action = 'skipped';
+  btns.append(btnP, btnF, btnS);
+
+  const content = el('div', 'step-content');
+  const desc    = el('div', 'step-desc'); desc.textContent = step.description;
+  const reason  = el('input', 'step-reason');
+  reason.type = 'text';
+  reason.id   = 'reason-' + testId + '-' + step.id;
+  reason.placeholder = t('reason_ph');
+  content.append(desc, reason);
+
+  row.append(numEl, btns, content);
+
+  [btnP, btnF, btnS].forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const curIdx = state.flatSteps.findIndex(s => s.testId === testId && s.stepId === step.id);
+      markStep(testId, step.id, btn.dataset.action);
+      if (btn.dataset.action !== 'failed') advanceFocusFrom(curIdx);
+    });
+  });
+
+  reason.addEventListener('input', () => {
+    if (state.results[testId]?.steps[step.id]) {
+      state.results[testId].steps[step.id].reason = reason.value;
+    }
+  });
+
+  return row;
+}
+
+// ════════════════════════════════════════════════════════════════
+// MARK STEP
+// ════════════════════════════════════════════════════════════════
+function markStep(testId, stepId, status) {
+  const stepState = state.results[testId]?.steps[stepId];
+  if (!stepState) return;
+  stepState.status = status;
+
+  const row = document.getElementById('step-' + testId + '-' + stepId);
+  if (!row) return;
+
+  row.querySelectorAll('.step-btn').forEach(b => b.classList.remove('active'));
+  const cls = { passed: 'step-btn-p', failed: 'step-btn-f', skipped: 'step-btn-s' };
+  row.querySelector('.' + cls[status])?.classList.add('active');
+
+  row.classList.remove('status-passed','status-failed','status-skipped');
+  row.classList.add('status-' + status);
+
+  const reasonEl = document.getElementById('reason-' + testId + '-' + stepId);
+  if (reasonEl) {
+    reasonEl.style.display = status === 'failed' ? 'block' : 'none';
+    if (status === 'failed') { reasonEl.focus(); }
+    else { stepState.reason = ''; reasonEl.value = ''; }
+  }
+
+  deriveTestStatus(testId);
+  updateProgress();
+}
+
+function deriveTestStatus(testId) {
+  const steps = Object.values(state.results[testId].steps);
+  let status;
+  if (steps.some(s => s.status === 'failed'))                               status = 'failed';
+  else if (steps.every(s => s.status === 'passed' || s.status === 'skipped')) status = 'passed';
+  else                                                                        status = 'pending';
+  state.results[testId].status = status;
+
+  const badge = document.getElementById('badge-' + testId);
+  if (badge) {
+    badge.className = 'status-badge ' + (status === 'passed' ? 'badge-pass' : status === 'failed' ? 'badge-fail' : 'badge-pend');
+    badge.textContent = status === 'passed' ? 'PASS' : status === 'failed' ? 'FAIL' : t('badge_pend');
+  }
+
+  const done = steps.filter(s => s.status !== 'pending').length;
+  const meta = document.getElementById('meta-' + testId);
+  if (meta) meta.textContent = done + '/' + steps.length + ' steps';
+
+  updateSectionPill(testId);
+}
+
+function skipTest(testId) {
+  const test = state.suite.sections.flatMap(s => s.tests).find(tst => tst.id === testId);
+  if (!test) return;
+  test.steps.forEach(step => {
+    if (state.results[testId]?.steps[step.id]?.status === 'pending') {
+      markStep(testId, step.id, 'skipped');
+    }
+  });
+}
+
+function updateSectionPill(testId) {
+  const sec = state.suite.sections.find(s => s.tests.some(tst => tst.id === testId));
+  if (!sec) return;
+  const sel     = sec.tests.filter(tst => state.selected.has(tst.id));
+  const passed  = sel.filter(tst => state.results[tst.id]?.status === 'passed').length;
+  const failed  = sel.filter(tst => state.results[tst.id]?.status === 'failed').length;
+  const pending = sel.filter(tst => state.results[tst.id]?.status === 'pending').length;
+  const pill    = document.getElementById('pill-' + sec.id);
+  if (!pill) return;
+  pill.textContent = passed + '/' + sel.length;
+  pill.className   = 'sidebar-pill ' + (failed > 0 ? 'pill-fail' : pending > 0 ? 'pill-pend' : 'pill-pass');
+}
+
+// ════════════════════════════════════════════════════════════════
+// PROGRESS
+// ════════════════════════════════════════════════════════════════
+function updateProgress() {
+  const statuses = state.flatSteps.map(s => state.results[s.testId]?.steps[s.stepId]?.status ?? 'pending');
+  const total   = statuses.length;
+  const passed  = statuses.filter(s => s === 'passed').length;
+  const failed  = statuses.filter(s => s === 'failed').length;
+  const skipped = statuses.filter(s => s === 'skipped').length;
+  const done    = passed + failed + skipped;
+
+  document.getElementById('stat-pass').textContent = passed;
+  document.getElementById('stat-fail').textContent = failed;
+  document.getElementById('stat-pend').textContent = total - done;
+  document.getElementById('progress-fill').style.width = total ? (done / total * 100) + '%' : '0%';
+  document.getElementById('progress-label').textContent = done + ' / ' + total + ' steps';
+  document.getElementById('btn-save').disabled = done < total || total === 0;
+}
+
+// ════════════════════════════════════════════════════════════════
+// FOCUS & KEYBOARD
+// ════════════════════════════════════════════════════════════════
+function focusStep(idx) {
+  document.querySelectorAll('.step-row.focused').forEach(r => r.classList.remove('focused'));
+  if (idx < 0 || idx >= state.flatSteps.length) { state.focusedIdx = Math.max(0, idx); return; }
+  state.focusedIdx = idx;
+  const { testId, stepId } = state.flatSteps[idx];
+  const row = document.getElementById('step-' + testId + '-' + stepId);
+  if (row) { row.classList.add('focused'); row.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+}
+
+function advanceFocusFrom(cur) {
+  for (let i = cur + 1; i < state.flatSteps.length; i++) {
+    const { testId, stepId } = state.flatSteps[i];
+    if (state.results[testId]?.steps[stepId]?.status === 'pending') { focusStep(i); return; }
+  }
+  focusStep(Math.min(cur + 1, state.flatSteps.length - 1));
+}
+
+document.addEventListener('keydown', e => {
+  if (document.getElementById('screen-run').classList.contains('hidden')) return;
+  const inInput = document.activeElement && ['INPUT','TEXTAREA'].includes(document.activeElement.tagName);
+
+  if (e.key === 'ArrowRight' || (e.key === 'Tab' && !inInput)) {
+    if (e.key === 'Tab') e.preventDefault();
+    focusStep(Math.min(state.focusedIdx + 1, state.flatSteps.length - 1)); return;
+  }
+  if (e.key === 'ArrowLeft' && !inInput) { focusStep(Math.max(state.focusedIdx - 1, 0)); return; }
+  if (inInput) return;
+
+  const cur = state.flatSteps[state.focusedIdx];
+  if (!cur) return;
+  if (e.key === 'p' || e.key === 'P') { markStep(cur.testId, cur.stepId, 'passed');  advanceFocusFrom(state.focusedIdx); }
+  if (e.key === 'f' || e.key === 'F') { markStep(cur.testId, cur.stepId, 'failed'); }
+  if (e.key === 's' || e.key === 'S') { markStep(cur.testId, cur.stepId, 'skipped'); advanceFocusFrom(state.focusedIdx); }
+});
+
+// ════════════════════════════════════════════════════════════════
+// SIDEBAR SCROLL SYNC
+// ════════════════════════════════════════════════════════════════
+function updateSidebarActive() {
+  const content = document.getElementById('run-content');
+  const scrollTop = content.scrollTop;
+  let activeId = null;
+  document.querySelectorAll('.run-section-block[id]').forEach(s => {
+    if (s.offsetTop - 48 <= scrollTop) activeId = s.id.replace('section-', '');
+  });
+  if (!activeId) return;
+  document.querySelectorAll('.sidebar-item').forEach(si => si.classList.toggle('active', si.dataset.sectionId === activeId));
+}
+
+// ════════════════════════════════════════════════════════════════
+// SAVE
+// ════════════════════════════════════════════════════════════════
+document.getElementById('tester-input').addEventListener('input', e => { state.tester = e.target.value; });
+document.getElementById('btn-save').addEventListener('click', saveResults);
+
+async function saveResults() {
+  const tester  = (document.getElementById('tester-input').value.trim()) || 'unknown';
+  const now     = new Date();
+  const pad     = n => String(n).padStart(2,'0');
+  const base    = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}_${state.suite.suite.toLowerCase().replace(/[^a-z0-9]/g,'-')}`;
+  const jsonFile   = base + '.json';
+  const reportFile = base + '_report.html';
+  const resultJSON = buildResultJSON(tester, now);
+  const jsonStr    = JSON.stringify(resultJSON, null, 2);
+  const reportHTML = buildReportHTML(resultJSON);
+
+  let saved = false;
+  if (window.showDirectoryPicker) {
+    try {
+      const dir = await window.showDirectoryPicker({ mode: 'readwrite' });
+      await writeFileToDir(dir, jsonFile,   jsonStr,    'application/json');
+      await writeFileToDir(dir, reportFile, reportHTML, 'text/html');
+      saved = true;
+    } catch(err) { if (err.name !== 'AbortError') console.warn('FSA unavailable, using download', err); }
+  }
+  if (!saved) {
+    download(jsonFile,   jsonStr,    'application/json');
+    await new Promise(r => setTimeout(r, 300));
+    download(reportFile, reportHTML, 'text/html');
+  }
+  showDoneScreen(resultJSON, jsonFile, reportFile);
+}
+
+async function writeFileToDir(dir, name, content, mime) {
+  const fh = await dir.getFileHandle(name, { create: true });
+  const w  = await fh.createWritable();
+  await w.write(new Blob([content], { type: mime }));
+  await w.close();
+}
+
+function download(name, content, mime) {
+  const a   = document.createElement('a');
+  a.href    = URL.createObjectURL(new Blob([content], { type: mime }));
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+}
+
+// ════════════════════════════════════════════════════════════════
+// BUILD RESULT JSON
+// ════════════════════════════════════════════════════════════════
+function buildResultJSON(tester, date) {
+  const statuses = state.flatSteps.map(s => state.results[s.testId]?.steps[s.stepId]?.status ?? 'pending');
+  return {
+    suite:    state.suite.suite,
+    version:  state.suite.version || '',
+    run_date: date.toISOString(),
+    tester,
+    summary: {
+      total_steps: statuses.length,
+      passed:  statuses.filter(s => s === 'passed').length,
+      failed:  statuses.filter(s => s === 'failed').length,
+      skipped: statuses.filter(s => s === 'skipped').length,
+    },
+    results: JSON.parse(JSON.stringify(state.results)),
+  };
+}
+
+// ════════════════════════════════════════════════════════════════
+// BUILD REPORT HTML
+// ════════════════════════════════════════════════════════════════
+function buildReportHTML(r) {
+  const s   = r.summary;
+  const pct = s.total_steps ? Math.round(s.passed / s.total_steps * 100) : 0;
+  const statusColor = s.failed > 0 ? '#dc2626' : '#16a34a';
+  const statusLabel = s.failed > 0 ? 'FAILED'  : 'PASSED';
+
+  let sectionsHTML = '';
+  state.suite.sections.forEach(sec => {
+    const sel = sec.tests.filter(tst => state.selected.has(tst.id));
+    if (!sel.length) return;
+    let testsHTML = '';
+    sel.forEach(tst => {
+      const tr = r.results[tst.id]; if (!tr) return;
+      const bc = tr.status === 'passed' ? '#16a34a' : tr.status === 'failed' ? '#dc2626' : '#94a3b8';
+      const bg = tr.status === 'passed' ? '#dcfce7' : tr.status === 'failed' ? '#fee2e2' : '#f1f5f9';
+      const bl = tr.status === 'passed' ? 'PASS'    : tr.status === 'failed' ? 'FAIL'    : 'SKIP';
+      let stepsHTML = '';
+      tst.steps.forEach(step => {
+        const sr = tr.steps[step.id]; if (!sr) return;
+        const icon  = sr.status === 'passed' ? '✓' : sr.status === 'failed' ? '✗' : '–';
+        const color = sr.status === 'passed' ? '#16a34a' : sr.status === 'failed' ? '#dc2626' : '#94a3b8';
+        const reasonRow = (sr.status === 'failed' && sr.reason)
+          ? '<div style="margin-top:4px;padding:4px 8px;background:#fff7ed;border:1px solid #fed7aa;border-radius:4px;font-size:11px;color:#9a3412">' + esc(sr.reason) + '</div>'
+          : '';
+        stepsHTML += '<tr><td style="width:28px;text-align:center;color:' + color + ';font-weight:700;font-size:14px">' + icon + '</td>'
+          + '<td style="padding:6px 8px;font-size:12px;color:#334155">' + esc(step.description) + reasonRow + '</td></tr>';
+      });
+      testsHTML += '<div style="margin-bottom:12px;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden">'
+        + '<div style="padding:10px 14px;background:#f8fafc;display:flex;align-items:center;gap:10px;border-bottom:1px solid #e2e8f0">'
+        + '<span style="background:' + bg + ';color:' + bc + ';font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px">' + bl + '</span>'
+        + '<span style="font-weight:600;font-size:13px">' + esc(tst.title) + '</span></div>'
+        + '<table style="width:100%;border-collapse:collapse;background:white"><tbody>' + stepsHTML + '</tbody></table></div>';
+    });
+    sectionsHTML += '<div style="margin-bottom:28px">'
+      + '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:#94a3b8;padding-bottom:8px;border-bottom:1px solid #e2e8f0;margin-bottom:12px">' + esc(sec.title) + '</div>'
+      + testsHTML + '</div>';
+  });
+
+  return '<!DOCTYPE html><html lang="' + esc(state.lang) + '"><head><meta charset="UTF-8">'
+    + '<title>QA Report — ' + esc(r.suite) + (r.version ? ' ' + esc(r.version) : '') + ' — ' + esc(r.run_date.slice(0,10)) + '</title>'
+    + '<style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f1f5f9;margin:0;padding:32px 24px;color:#1e293b}.wrap{max-width:820px;margin:0 auto}h1{font-size:22px;font-weight:800;margin-bottom:4px}</style>'
+    + '</head><body><div class="wrap">'
+    + '<h1>QA Report — ' + esc(r.suite) + (r.version ? ' v' + esc(r.version) : '') + '</h1>'
+    + '<div style="font-size:13px;color:#64748b;margin-bottom:28px">' + esc(r.run_date.slice(0,10)) + ' &middot; ' + esc(t('report_tester')) + ': <strong>' + esc(r.tester) + '</strong></div>'
+    + '<div style="display:flex;gap:16px;margin-bottom:32px;flex-wrap:wrap">'
+    + stat(statusLabel, statusColor, pct + '% pass rate')
+    + stat(s.passed,    '#16a34a',   t('report_passed'))
+    + stat(s.failed,    '#dc2626',   t('report_failed'))
+    + stat(s.skipped,   '#94a3b8',   t('report_skipped'))
+    + stat(s.total_steps,'#475569',  t('report_total'))
+    + '</div>'
+    + sectionsHTML
+    + '<div style="margin-top:40px;padding-top:16px;border-top:1px solid #e2e8f0;font-size:11px;color:#94a3b8;text-align:center">' + esc(t('report_footer')) + ' &middot; ' + esc(r.run_date.replace('T',' ').slice(0,16)) + '</div>'
+    + '</div></body></html>';
+}
+
+function stat(val, color, label) {
+  return '<div style="background:white;border:1px solid #e2e8f0;border-radius:10px;padding:20px 28px;text-align:center;flex:1;min-width:100px">'
+    + '<div style="font-size:32px;font-weight:800;color:' + color + '">' + esc(String(val)) + '</div>'
+    + '<div style="font-size:12px;color:#94a3b8;margin-top:2px">' + esc(label) + '</div></div>';
+}
+
+// ════════════════════════════════════════════════════════════════
+// DONE SCREEN
+// ════════════════════════════════════════════════════════════════
+function showDoneScreen(r, jsonFile, reportFile) {
+  const s = r.summary;
+  document.getElementById('done-pass').textContent = s.passed;
+  document.getElementById('done-fail').textContent = s.failed;
+  document.getElementById('done-skip').textContent = s.skipped;
+  document.getElementById('done-sub').textContent  = 'Suite: ' + r.suite + (r.version ? ' v' + r.version : '') + ' · ' + r.run_date.slice(0,10);
+
+  const filesEl = document.getElementById('done-files');
+  filesEl.textContent = '';
+  const ns = 'http://www.w3.org/2000/svg';
+  const fileIconDefs = [
+    { paths: [['path',{d:'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'}],['polyline',{points:'14 2 14 8 20 8'}]], name: jsonFile },
+    { paths: [['circle',{cx:'12',cy:'12',r:'10'}],['line',{x1:'2',y1:'12',x2:'22',y2:'12'}],['path',{d:'M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z'}]], name: reportFile },
+  ];
+  fileIconDefs.forEach(({ paths, name }) => {
+    const row = el('div', 'done-file');
+    const ico = el('span', 'done-file-icon');
+    const svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('width','14'); svg.setAttribute('height','14');
+    svg.setAttribute('viewBox','0 0 24 24'); svg.setAttribute('fill','none');
+    svg.setAttribute('stroke','currentColor'); svg.setAttribute('stroke-width','2');
+    svg.setAttribute('stroke-linecap','round'); svg.setAttribute('stroke-linejoin','round');
+    paths.forEach(([tag, attrs]) => {
+      const child = document.createElementNS(ns, tag);
+      Object.entries(attrs).forEach(([k,v]) => child.setAttribute(k,v));
+      svg.appendChild(child);
+    });
+    ico.appendChild(svg);
+    const nm = el('span'); nm.textContent = name;
+    row.append(ico, nm);
+    filesEl.appendChild(row);
+  });
+
+  showScreen('screen-done');
+}
+
+document.getElementById('btn-newrun').addEventListener('click', () => {
+  state.results    = {};
+  state.flatSteps  = [];
+  state.focusedIdx = 0;
+  state.selected.clear();
+  renderSelectScreen();
+  showScreen('screen-select');
+});
+</script>
+</body>
+</html>
